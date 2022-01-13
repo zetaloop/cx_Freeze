@@ -828,6 +828,16 @@ def load_ptr(finder: ModuleFinder, module: Module) -> None:
 
 def load_pycountry(finder: ModuleFinder, module: Module) -> None:
     """The pycountry module has data in subdirectories."""
+    for file in module.distribution.files:
+        if file.match(f"{module.name}-*.dist-info/METADATA"):
+            path = file.locate()
+            lines = []
+            for line in path.read_text().splitlines():
+                if line.startswith("Requires-Dist:"):
+                    continue
+                lines.append(line)
+            path.write_text("\n".join(lines))
+            break
     finder.ExcludeModule("pycountry.tests")
     module.in_file_system = 1
 
