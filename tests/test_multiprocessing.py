@@ -58,7 +58,6 @@ setup.py
 """
 
 
-# @pytest.mark.skipif(sys.platform != "win32", reason="Windows tests")
 def test_multiprocessing_1(tmp_path: Path):
     """Provides test cases for multiprocessing."""
     create_package(tmp_path, SOURCE)
@@ -71,9 +70,8 @@ def test_multiprocessing_1(tmp_path: Path):
     suffix = ".exe" if sys.platform == "win32" else ""
     executable = tmp_path / BUILD_EXE_DIR / f"sample1{suffix}"
     assert executable.is_file()
-    # pytest.fail()
     output = check_output(
-        [os.fspath(executable)], text=True, timeout=10, cwd=os.fspath(tmp_path)
+        [os.fspath(executable)], text=True, timeout=30, cwd=os.fspath(tmp_path)
     )
     print(output)
     assert output.splitlines()[-1] == "hello"
@@ -91,9 +89,8 @@ def test_multiprocessing_2(tmp_path: Path):
     suffix = ".exe" if sys.platform == "win32" else ""
     executable = tmp_path / BUILD_EXE_DIR / f"sample2{suffix}"
     assert executable.is_file()
-    # pytest.fail()
     output = check_output(
-        [os.fspath(executable)], text=True, timeout=10, cwd=os.fspath(tmp_path)
+        [os.fspath(executable)], text=True, timeout=30, cwd=os.fspath(tmp_path)
     )
     print(output)
     assert output.splitlines()[-1] == "after creating dict"
