@@ -26,11 +26,12 @@ def load_cv2(finder: ModuleFinder, module: Module) -> None:
     if module.distribution is None:
         module.update_distribution("opencv-python")
 
+    source_dir = module.file.parent
     target_dir = Path("lib", "cv2")
 
     # conda-forge and msys2: cv2 4.6.0 is a extension module
     if module.path is None:
-        # msys2 files is on share subdirectory
+        # msys2 files is on shared subdirectory
         source = Path(sys.base_prefix, "plugins/platforms")
         if not source.is_dir():
             source = Path(sys.base_prefix, "share/qt5/plugins/platforms")
@@ -45,17 +46,14 @@ def load_cv2(finder: ModuleFinder, module: Module) -> None:
         lines = ["[Paths]", f"Prefix = {target_dir.as_posix()}"]
         with qt_conf.open(mode="w", encoding="utf_8", newline="") as file:
             file.write("\n".join(lines))
+        finder.include_files(qt_conf, qt_conf.name)
         if IS_MACOS:
-            target_qt_conf = "Contents/Resources/qt.conf"
-        else:
-            target_qt_conf = qt_conf.name
-        finder.include_files(qt_conf, target_qt_conf)
+            finder.include_files(qt_conf, "Contents/Resources/qt.conf")
         return
 
     # Use optmized mode
     module.in_file_system = 2
     finder.include_package("cv2")
-    source_dir = module.path[0]
     for path in source_dir.glob("config*.py"):
         finder.include_files(path, target_dir / path.name)
     data_dir = source_dir / "data"
@@ -65,11 +63,11 @@ def load_cv2(finder: ModuleFinder, module: Module) -> None:
     # Copy all binary files
     if IS_WINDOWS:
         return
+
     if IS_MACOS:
-        source_dylibs = source_dir / ".dylibs"
-        if source_dylibs.exists():
-            for file in source_dylibs.iterdir():
-                finder.include_files(file, file.name)
+        libs_dir = source_dir / ".dylibs"
+        if libs_dir.exists():
+            finder.include_files(libs_dir, "lib/cv2/.dylibs")
         return
 
     # Linux and others
