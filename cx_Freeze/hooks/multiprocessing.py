@@ -7,7 +7,6 @@ from __future__ import annotations
 import os
 from textwrap import dedent
 
-from cx_Freeze._compat import IS_WINDOWS
 from cx_Freeze.finder import ModuleFinder
 from cx_Freeze.module import Module
 
@@ -24,8 +23,6 @@ def load_multiprocessing(
     multiprocessing.spawn.freeze_support works for all OS,
     so run it and disable the former.
     """
-    if IS_WINDOWS:  # patch is not needed
-        return
     if module.file.suffix == ".pyc":  # source unavailable
         return
     source = r"""
@@ -34,11 +31,14 @@ def load_multiprocessing(
     import sys
     from multiprocessing.spawn import freeze_support
 
-    if len(sys.argv) >= 2 and sys.argv[-2] == "-c":
-        cmd = sys.argv[-1]
-        if re.search(r"^from multiprocessing.* import main.*", cmd):
-            exec(cmd)
-            sys.exit()
+    if (  # What if we use the original code?
+        len(sys.argv) >= 2 and sys.argv[-2] == '-c' and sys.argv[-1].startswith((
+            'from multiprocessing.resource_tracker import main',
+            'from multiprocessing.forkserver import main'
+        )) and set(sys.argv[1:-2]) == set(util._args_from_interpreter_flags())
+    ):
+        exec(sys.argv[-1])
+        sys.exit()
     freeze_support()
     freeze_support = lambda: None
     # cx_Freeze patch end
