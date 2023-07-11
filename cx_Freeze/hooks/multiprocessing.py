@@ -27,7 +27,7 @@ def load_multiprocessing(
         return
     source = r"""
     # cx_Freeze patch start
-    
+
     # What if we use the original monkey patch from pyinstaller
     import os
     import sys
@@ -69,7 +69,7 @@ def load_multiprocessing(
             sys.exit()
 
     multiprocessing.freeze_support = multiprocessing.spawn.freeze_support = _freeze_support
-    
+
     # cx_Freeze patch end
     """
     code_string = module.file.read_text(encoding="utf-8") + dedent(source)
