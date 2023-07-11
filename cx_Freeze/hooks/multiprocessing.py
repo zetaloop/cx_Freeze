@@ -31,8 +31,6 @@ def load_multiprocessing(
     import sys
     from multiprocessing.spawn import freeze_support
 
-    # Prevent `spawn` from trying to read `__main__` in from the main script
-    process.ORIGINAL_DIR = None
     if len(sys.argv) >= 2 and sys.argv[-2] == "-c":
         cmd = sys.argv[-1]
         if re.search(r"^from multiprocessing.* import main.*", cmd):
