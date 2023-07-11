@@ -40,7 +40,8 @@ def load_multiprocessing(
         exec(sys.argv[-1])
         sys.exit()
     freeze_support()
-    freeze_support = lambda: None
+    def _fs(): pass
+    freeze_support = _fs
     # cx_Freeze patch end
     """
     code_string = module.file.read_text(encoding="utf-8") + dedent(source)
