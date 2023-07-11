@@ -27,21 +27,49 @@ def load_multiprocessing(
         return
     source = r"""
     # cx_Freeze patch start
-    import re
+    
+    # What if we use the original monkey patch from pyinstaller
+    import os
     import sys
-    from multiprocessing.spawn import freeze_support
 
-    if (  # What if we use the original code?
-        len(sys.argv) >= 2 and sys.argv[-2] == '-c' and sys.argv[-1].startswith((
-            'from multiprocessing.resource_tracker import main',
-            'from multiprocessing.forkserver import main'
-        )) and set(sys.argv[1:-2]) == set(util._args_from_interpreter_flags())
-    ):
-        exec(sys.argv[-1])
-        sys.exit()
-    freeze_support()
-    def _fs(): pass
-    freeze_support = _fs
+    import threading
+    import multiprocessing
+    import multiprocessing.spawn
+
+    from subprocess import _args_from_interpreter_flags
+
+    # Prevent `spawn` from trying to read `__main__` in from the main script
+    multiprocessing.process.ORIGINAL_DIR = None
+
+    def _freeze_support():
+        # We want to catch the two processes that are spawned by the multiprocessing code:
+        # - the semaphore tracker, which cleans up named semaphores in the `spawn` multiprocessing mode
+        # - the fork server, which keeps track of worker processes in the `forkserver` mode.
+        # Both of these processes are started by spawning a new copy of the running executable, passing it the flags
+        # from `_args_from_interpreter_flags` and then "-c" and an import statement.
+        # Look for those flags and the import statement, then `exec()` the code ourselves.
+
+        if (
+            len(sys.argv) >= 2 and sys.argv[-2] == '-c' and sys.argv[-1].startswith(
+                ('from multiprocessing.resource_tracker import main', 'from multiprocessing.forkserver import main')
+            ) and set(sys.argv[1:-2]) == set(_args_from_interpreter_flags())
+        ):
+            exec(sys.argv[-1])
+            sys.exit()
+
+        if multiprocessing.spawn.is_forking(sys.argv):
+            kwds = {}
+            for arg in sys.argv[2:]:
+                name, value = arg.split('=')
+                if value == 'None':
+                    kwds[name] = None
+                else:
+                    kwds[name] = int(value)
+            multiprocessing.spawn.spawn_main(**kwds)
+            sys.exit()
+
+    multiprocessing.freeze_support = multiprocessing.spawn.freeze_support = _freeze_support
+    
     # cx_Freeze patch end
     """
     code_string = module.file.read_text(encoding="utf-8") + dedent(source)
